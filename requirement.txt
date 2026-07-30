@@ -8,3 +8,7 @@ automation
 email-reminder
 dashboard
 data-management
+streamlit
+pandas
+mysql-connector-python
+openpyxl
