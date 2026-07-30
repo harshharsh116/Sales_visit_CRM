@@ -1,3 +1,10 @@
 streamlit
-pandas
-numpy
+python
+mysql
+crm
+sales-management
+n8n
+automation
+email-reminder
+dashboard
+data-management
