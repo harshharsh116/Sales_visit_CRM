@@ -212,3 +212,53 @@ def pending_followups():
 
     return total
 
+def delete_visit(visit_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM sales_visits WHERE visit_id=%s",
+        (visit_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_salesman_visits(salesman):
+    conn = get_connection()
+
+    query = """
+        SELECT *
+        FROM sales_visits
+        WHERE salesman = %s
+        ORDER BY visit_date DESC
+    """
+
+    df = pd.read_sql(query, conn, params=(salesman,))
+
+    conn.close()
+
+    return df
+import pandas as pd
+
+def get_salesman_visits_by_date(salesman, from_date, to_date):
+    conn = get_connection()
+
+    query = """
+        SELECT *
+        FROM sales_visits
+        WHERE salesman = %s
+        AND visit_date BETWEEN %s AND %s
+        ORDER BY visit_date DESC
+    """
+
+    df = pd.read_sql(
+        query,
+        conn,
+        params=(salesman, from_date, to_date)
+    )
+
+    conn.close()
+
+    return df
