@@ -10,7 +10,10 @@ from db import (
     delete_user,
     pending_followups,
     today_visits,
-    total_visits
+    total_visits,
+    delete_visit,
+    get_salesman_visits,
+    get_salesman_visits_by_date
 )
 # Page config
 st.set_page_config(
@@ -78,7 +81,8 @@ else:
                 "New Visit",
                 "All Visits",
                 "Dashboard",
-                "Users"
+                "Users",
+                "Salesman Visits",
             ]
         )
 
@@ -225,50 +229,78 @@ else:
                   if follow_up == "Yes":
                       st.write(f"**Follow-up Date:** {followup_date}")
                       st.write(f"**Follow-up Objective:** {followup_objective}")
+
+
     elif page == "All Visits":
 
         st.title("📋 All Sales Visits")
 
         visits = get_all_visits()
 
-        st.dataframe(
-            visits,
-            use_container_width=True
-        )
+        if visits.empty:
+            st.info("No visits found.")
 
+        else:
+            # Show all visits
+            st.dataframe(
+                visits,
+                use_container_width=True
+            )
 
+            st.divider()
+
+            st.subheader("🗑 Delete Visit")
+
+            visit_id = st.number_input(
+                "Enter Visit ID to Delete",
+                min_value=1,
+                step=1,
+                format="%d"
+            )
+
+            if st.button("Delete Visit", use_container_width=True):
+                st.session_state.confirm_delete = True
+
+            if st.session_state.get("confirm_delete", False):
+
+                st.warning(f"Are you sure you want to delete Visit ID {visit_id}?")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    if st.button("✅ Yes", use_container_width=True):
+                        delete_visit(visit_id)
+                        st.success("Visit deleted successfully.")
+                        st.session_state.confirm_delete = False
+                        st.rerun()
+
+                with col2:
+                    if st.button("❌ No", use_container_width=True):
+                        st.session_state.confirm_delete = False
+                        st.rerun()
     elif page == "Dashboard":
 
         st.title("📊 Dashboard")
 
         col1, col2, col3 = st.columns(3)
 
-        col1.metric(
-            "Total Visits",
-            total_visits()
-        )
-
-        col2.metric(
-            "Today's Visits",
-            today_visits()
-        )
-
-        col3.metric(
-            "Pending Follow-ups",
-            pending_followups()
-        )
+        col1.metric("Total Visits", total_visits())
+        col2.metric("Today's Visits", today_visits())
+        col3.metric("Pending Follow-ups", pending_followups())
 
         st.divider()
 
-        st.subheader("All Visits")
+        tab1, tab2 = st.tabs(["📋 All Visits", "👤 My Visits"])
 
-        visits = get_all_visits()
+        with tab1:
+            st.subheader("All Visits")
+            visits = get_all_visits()
+            st.dataframe(visits, use_container_width=True)
 
-        st.dataframe(
-            visits,
-            use_container_width=True
-        )
-
+        with tab2:
+            st.subheader("My Visits")
+            my_visits = get_my_visits(st.session_state.salesman_name)
+            st.dataframe(my_visits, use_container_width=True)
     elif page == "Users":
 
         st.title("👥 User Management")
@@ -342,3 +374,46 @@ else:
             use_container_width=True
         )
 
+    elif page == "Salesman Visits":
+
+        st.title("👨‍💼 Salesman Wise Visits")
+
+        visits = get_all_visits()
+
+        if visits.empty:
+            st.info("No visits available.")
+
+        else:
+
+            salesmen = sorted(visits["salesman"].unique())
+
+            salesman = st.selectbox(
+                "Select Salesman",
+                salesmen
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                from_date = st.date_input("From Date")
+
+            with col2:
+                to_date = st.date_input("To Date")
+
+            if from_date > to_date:
+                st.error("From Date cannot be after To Date.")
+
+            else:
+
+                filtered_visits = get_salesman_visits_by_date(
+                    salesman,
+                    from_date,
+                    to_date
+                )
+
+                st.metric("Total Visits", len(filtered_visits))
+
+                st.dataframe(
+                    filtered_visits,
+                    use_container_width=True
+                )
